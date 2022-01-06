@@ -1,4 +1,4 @@
-package app
+package storage
 
 import "fmt"
 
@@ -37,4 +37,13 @@ func (storage *Storage) GetURL(id int) (string, error) {
 
 func (storage *Storage) GetNextID() int {
 	return storage.nextID
+}
+
+func (storage *Storage) GetURLIfExist(url string) string {
+	for _, v := range storage.urls {
+		if v.BaseURL == url {
+			return v.ShortenedURL
+		}
+	}
+	return ""
 }
