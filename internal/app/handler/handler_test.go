@@ -117,6 +117,9 @@ func TestURLGetHandler(t *testing.T) {
 
 				assert.Equal(t, tt.want.statusCode, result.StatusCode)
 				assert.Equal(t, element, w.Header().Get("Location"))
+
+				err := result.Body.Close()
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -155,14 +158,15 @@ func TestURLHandlerError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := NewURLServer()
-				body := []byte(tt.body)
-				request := httptest.NewRequest(tt.method, tt.request, bytes.NewBuffer(body))
-				w := httptest.NewRecorder()
-				h := server.URLHandler()
-				h.ServeHTTP(w, request)
-				result := w.Result()
-
-				assert.Equal(t, tt.statusCode, result.StatusCode)
+			body := []byte(tt.body)
+			request := httptest.NewRequest(tt.method, tt.request, bytes.NewBuffer(body))
+			w := httptest.NewRecorder()
+			h := server.URLHandler()
+			h.ServeHTTP(w, request)
+			result := w.Result()
+			assert.Equal(t, tt.statusCode, result.StatusCode)
+			err := result.Body.Close()
+			require.NoError(t, err)
 		})
 	}
 }
