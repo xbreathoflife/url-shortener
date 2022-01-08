@@ -1,4 +1,4 @@
-package handler
+package server
 
 import (
 	"bytes"
@@ -21,6 +21,7 @@ func TestURLPostHandler(t *testing.T) {
 		name    string
 		request string
 		body    []string
+		method  string
 		want    want
 	}{
 		{
@@ -31,6 +32,7 @@ func TestURLPostHandler(t *testing.T) {
 				statusCode:  201,
 				url:         []string{"http://localhost:8080/0", "http://localhost:8080/1", "http://localhost:8080/2"},
 			},
+			method:     http.MethodPost,
 			request: "/",
 		},
 		{
@@ -41,6 +43,7 @@ func TestURLPostHandler(t *testing.T) {
 				statusCode:  201,
 				url:         []string{"http://localhost:8080/0", "http://localhost:8080/1", "http://localhost:8080/0"},
 			},
+			method:     http.MethodPost,
 			request: "/",
 		},
 		{
@@ -49,9 +52,43 @@ func TestURLPostHandler(t *testing.T) {
 			want: want{
 				contentType: "text/plain; charset=utf-8",
 				statusCode:  400,
-				url:         []string{"Only GET requests are allowed!\n"},
+				url:         []string{"Wrong path\n"},
 			},
+			method:     http.MethodPost,
 			request: "/0",
+		},
+		{
+			name:       "post instead of get",
+			body:       []string{"https://yandex.ru/"},
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				url:         []string{"Wrong path\n"},
+			},
+			method:     http.MethodPost,
+			request:    "/1",
+		},
+		{
+			name:       "not number in get",
+			body:       nil,
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				url:         []string{"Wrong path\n"},
+			},
+			method:     http.MethodGet,
+			request:    "/notnumber",
+		},
+		{
+			name:       "get instead of post",
+			body:       nil,
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				url:         []string{"Wrong path\n"},
+			},
+			method:     http.MethodGet,
+			request:    "/",
 		},
 	}
 	for _, tt := range tests {
@@ -59,7 +96,7 @@ func TestURLPostHandler(t *testing.T) {
 			server := NewURLServer()
 			for i, element := range tt.body {
 				body := []byte(element)
-				request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBuffer(body))
+				request := httptest.NewRequest(tt.method, tt.request, bytes.NewBuffer(body))
 				w := httptest.NewRecorder()
 				h := server.URLHandler()
 				h.ServeHTTP(w, request)
@@ -121,52 +158,6 @@ func TestURLGetHandler(t *testing.T) {
 				err := result.Body.Close()
 				require.NoError(t, err)
 			}
-		})
-	}
-}
-
-func TestURLHandlerError(t *testing.T) {
-	tests := []struct {
-		name       string
-		request    string
-		body       string
-		method     string
-		statusCode int
-	}{
-		{
-			name:       "get instead of post",
-			body:       "https://yandex.ru/",
-			statusCode: 400,
-			method:     http.MethodGet,
-			request:    "/",
-		},
-		{
-			name:       "not number in get",
-			body:       "https://yandex.ru/",
-			statusCode: 400,
-			method:     http.MethodGet,
-			request:    "/notnumber",
-		},
-		{
-			name:       "post instead of get",
-			body:       "https://yandex.ru/",
-			statusCode: 400,
-			method:     http.MethodPost,
-			request:    "/1",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			server := NewURLServer()
-			body := []byte(tt.body)
-			request := httptest.NewRequest(tt.method, tt.request, bytes.NewBuffer(body))
-			w := httptest.NewRecorder()
-			h := server.URLHandler()
-			h.ServeHTTP(w, request)
-			result := w.Result()
-			assert.Equal(t, tt.statusCode, result.StatusCode)
-			err := result.Body.Close()
-			require.NoError(t, err)
 		})
 	}
 }

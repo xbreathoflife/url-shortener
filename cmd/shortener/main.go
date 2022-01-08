@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/xbreathoflife/url-shortener/internal/app/handler"
+	"github.com/xbreathoflife/url-shortener/internal/app/server"
 	"log"
 	"net/http"
 )
 
 func main() {
-	server := handler.NewURLServer()
-	http.HandleFunc("/", server.URLHandler())
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	urlServer := server.NewURLServer()
+	r := urlServer.URLHandler()
+	log.Fatal(http.ListenAndServe(":8080", r))
 }

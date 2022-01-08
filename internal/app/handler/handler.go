@@ -6,24 +6,14 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 const serverHost = "http://localhost:8080"
 
-type urlServer struct {
-	store *storage.Storage
-}
-
-func NewURLServer() *urlServer {
-	store := storage.NewStorage()
-	return &urlServer{store: store}
-}
-
-func (us *urlServer) getURLHandler(w http.ResponseWriter, r *http.Request, id int) {
+func GetURLHandler(w http.ResponseWriter, r *http.Request, id int, store *storage.Storage) {
 	log.Printf("handling get URL at %s\n", r.URL.Path)
 
-	url, err := us.store.GetURL(id)
+	url, err := store.GetURL(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -31,7 +21,7 @@ func (us *urlServer) getURLHandler(w http.ResponseWriter, r *http.Request, id in
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
-func (us *urlServer) postURLHandler(w http.ResponseWriter, r *http.Request) {
+func PostURLHandler(w http.ResponseWriter, r *http.Request, store *storage.Storage) {
 	log.Printf("handling post URL at %s\n", r.URL.Path)
 
 	b, err := io.ReadAll(r.Body)
@@ -40,11 +30,16 @@ func (us *urlServer) postURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	baseURL := string(b)
+	if baseURL == "" {
+		http.Error(w, "Empty body - no url", http.StatusBadRequest)
+		return
+	}
+
 	var shortenedURL string
-	if shortenedURL = us.store.GetURLIfExist(baseURL); shortenedURL == "" {
-		urlID := us.store.GetNextID()
+	if shortenedURL = store.GetURLIfExist(baseURL); shortenedURL == "" {
+		urlID := store.GetNextID()
 		shortenedURL = serverHost + "/" + strconv.Itoa(urlID)
-		us.store.AddURL(baseURL, shortenedURL)
+		store.AddURL(baseURL, shortenedURL)
 	}
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
@@ -54,28 +49,3 @@ func (us *urlServer) postURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
-func (us *urlServer) URLHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" {
-			if r.Method != http.MethodPost {
-				http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
-				return
-			}
-			us.postURLHandler(w, r)
-		} else {
-			if r.Method != http.MethodGet {
-				http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
-				return
-			}
-			path := strings.Trim(r.URL.Path, "/")
-			id, err := strconv.Atoi(path)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			us.getURLHandler(w, r, id)
-		}
-	}
-}
-
