@@ -14,7 +14,7 @@ type Handler struct {
 func (h *Handler) GetURLHandler(w http.ResponseWriter, r *http.Request, id int) {
 	log.Printf("handling get URL at %s\n", r.URL.Path)
 
-	url, err := h.Service.GetURLById(id)
+	url, err := h.Service.GetURLByID(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

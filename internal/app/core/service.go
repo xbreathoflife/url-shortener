@@ -11,7 +11,7 @@ type URLService struct {
 	Store *storage.Storage
 }
 
-func (us *URLService) GetURLById(id int) (string, error) {
+func (us *URLService) GetURLByID(id int) (string, error) {
 	return us.Store.GetURL(id)
 }
 
