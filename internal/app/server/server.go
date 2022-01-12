@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/xbreathoflife/url-shortener/internal/app/core"
 	"github.com/xbreathoflife/url-shortener/internal/app/handler"
 	"github.com/xbreathoflife/url-shortener/internal/app/storage"
 	"net/http"
@@ -11,11 +12,13 @@ import (
 
 type urlServer struct {
 	store *storage.Storage
+	handlers *handler.Handler
 }
 
 func NewURLServer() *urlServer {
 	store := storage.NewStorage()
-	return &urlServer{store: store}
+	handlers := handler.Handler{Service: &core.URLService{Store: store} }
+	return &urlServer{store: store, handlers: &handlers}
 }
 
 func (us *urlServer) URLHandler() *chi.Mux {
@@ -26,7 +29,7 @@ func (us *urlServer) URLHandler() *chi.Mux {
 	r.Use(middleware.Recoverer)
 
 	r.Post("/", func(rw http.ResponseWriter, r *http.Request) {
-		handler.PostURLHandler(rw, r, us.store)
+		us.handlers.PostURLHandler(rw, r)
 	})
 	r.Get("/{urlID}", func(rw http.ResponseWriter, r *http.Request) {
 		urlID := chi.URLParam(r, "urlID")
@@ -39,7 +42,7 @@ func (us *urlServer) URLHandler() *chi.Mux {
 			http.Error(rw, "urlID must be an integer", http.StatusBadRequest)
 			return
 		}
-		handler.GetURLHandler(rw, r, id, us.store)
+		us.handlers.GetURLHandler(rw, r, id)
 	})
 
 	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {

@@ -1,29 +1,22 @@
 package storage
 
 import "fmt"
-
-type URL struct {
-	BaseURL      string
-	ShortenedURL string
-}
+import "github.com/xbreathoflife/url-shortener/internal/app/entities"
 
 type Storage struct {
-	urls   map[int]URL
-	nextID int
+	urls   map[int]entities.URL
 }
 
 func NewStorage() *Storage {
 	storage := &Storage{}
-	storage.urls = make(map[int]URL)
-	storage.nextID = 0
+	storage.urls = make(map[int]entities.URL)
 	return storage
 }
 
 func (storage *Storage) AddURL(baseURL string, shortenedURL string) {
-	url := URL{baseURL, shortenedURL}
+	url := entities.URL{BaseURL: baseURL, ShortenedURL: shortenedURL}
 
-	storage.urls[storage.nextID] = url
-	storage.nextID++
+	storage.urls[len(storage.urls)] = url
 }
 
 func (storage *Storage) GetURL(id int) (string, error) {
@@ -36,7 +29,7 @@ func (storage *Storage) GetURL(id int) (string, error) {
 }
 
 func (storage *Storage) GetNextID() int {
-	return storage.nextID
+	return len(storage.urls)
 }
 
 func (storage *Storage) GetURLIfExist(url string) string {
