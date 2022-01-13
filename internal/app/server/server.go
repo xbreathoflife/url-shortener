@@ -33,16 +33,7 @@ func (us *urlServer) URLHandler() *chi.Mux {
 	})
 	r.Get("/{urlID}", func(rw http.ResponseWriter, r *http.Request) {
 		urlID := chi.URLParam(r, "urlID")
-		if urlID == "" {
-			http.Error(rw, "urlID param is missed", http.StatusBadRequest)
-			return
-		}
-		id, err := strconv.Atoi(urlID)
-		if err != nil {
-			http.Error(rw, "urlID must be an integer", http.StatusBadRequest)
-			return
-		}
-		us.handlers.GetURLHandler(rw, r, id)
+		us.handlers.GetURLHandler(rw, r, urlID)
 	})
 
 	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {

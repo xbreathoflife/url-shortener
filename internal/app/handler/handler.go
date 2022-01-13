@@ -5,14 +5,25 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Handler struct {
 	Service *core.URLService
 }
 
-func (h *Handler) GetURLHandler(w http.ResponseWriter, r *http.Request, id int) {
+func (h *Handler) GetURLHandler(w http.ResponseWriter, r *http.Request, urlID string) {
 	log.Printf("handling get URL at %s\n", r.URL.Path)
+
+	if urlID == "" {
+		http.Error(w, "urlID param is missed", http.StatusBadRequest)
+		return
+	}
+	id, err := strconv.Atoi(urlID)
+	if err != nil {
+		http.Error(w, "urlID must be an integer", http.StatusBadRequest)
+		return
+	}
 
 	url, err := h.Service.GetURLByID(id)
 	if err != nil {
