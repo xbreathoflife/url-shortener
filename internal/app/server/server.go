@@ -30,9 +30,14 @@ func (us *urlServer) URLHandler() *chi.Mux {
 	r.Post("/", func(rw http.ResponseWriter, r *http.Request) {
 		us.handlers.PostURLHandler(rw, r)
 	})
+
 	r.Get("/{urlID}", func(rw http.ResponseWriter, r *http.Request) {
 		urlID := chi.URLParam(r, "urlID")
 		us.handlers.GetURLHandler(rw, r, urlID)
+	})
+
+	r.Post("/api/shorten", func(rw http.ResponseWriter, r *http.Request) {
+		us.handlers.PostJsonURLHandler(rw, r)
 	})
 
 	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {

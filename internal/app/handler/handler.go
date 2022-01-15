@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"encoding/json"
 	"github.com/xbreathoflife/url-shortener/internal/app/core"
+	"github.com/xbreathoflife/url-shortener/internal/app/entities"
 	"io"
 	"log"
 	"net/http"
@@ -49,9 +51,44 @@ func(h *Handler) PostURLHandler(w http.ResponseWriter, r *http.Request) {
 
 	shortenedURL := h.Service.AddNewURL(baseURL)
 
-	w.WriteHeader(http.StatusCreated)
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(shortenedURL))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func(h *Handler) PostJsonURLHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handling post URL at %s\n", r.URL.Path)
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	baseURL := entities.BaseURL{}
+	if err := json.Unmarshal(b, &baseURL); err != nil {
+		http.Error(w, "Error during parsing request json", http.StatusBadRequest)
+		return
+	}
+	if baseURL.Url == "" {
+		http.Error(w, "Empty body - no url", http.StatusBadRequest)
+		return
+	}
+
+	shortURL := h.Service.AddNewURL(baseURL.Url)
+	shortenedURL := entities.ShortenedURL{Url: shortURL}
+	js, err := json.Marshal(shortenedURL)
+	if err != nil {
+		http.Error(w, "Error during building response json", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(js)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
