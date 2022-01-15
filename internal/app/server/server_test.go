@@ -115,7 +115,7 @@ func TestURLPostHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := NewURLServer()
+			server := NewURLServer("http://localhost:8080")
 			for i, element := range tt.body {
 				body := []byte(element)
 				request := httptest.NewRequest(tt.method, tt.request, bytes.NewBuffer(body))
@@ -161,7 +161,7 @@ func TestURLGetHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := NewURLServer()
+			server := NewURLServer("http://localhost:8080")
 			for i, element := range tt.body {
 				body := []byte(element)
 				request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBuffer(body))
