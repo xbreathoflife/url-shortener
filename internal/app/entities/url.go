@@ -6,9 +6,9 @@ type URL struct {
 }
 
 type BaseURL struct {
-	Url string `json:"url"`
+	Name string `json:"url"`
 }
 
 type ShortenedURL struct {
-	Url string `json:"result"`
+	Name string `json:"result"`
 }

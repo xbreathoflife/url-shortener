@@ -60,7 +60,7 @@ func(h *Handler) PostURLHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func(h *Handler) PostJsonURLHandler(w http.ResponseWriter, r *http.Request) {
+func(h *Handler) PostJSONURLHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handling post URL at %s\n", r.URL.Path)
 
 	b, err := io.ReadAll(r.Body)
@@ -73,13 +73,13 @@ func(h *Handler) PostJsonURLHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error during parsing request json", http.StatusBadRequest)
 		return
 	}
-	if baseURL.Url == "" {
+	if baseURL.Name == "" {
 		http.Error(w, "Empty body - no url", http.StatusBadRequest)
 		return
 	}
 
-	shortURL := h.Service.AddNewURL(baseURL.Url)
-	shortenedURL := entities.ShortenedURL{Url: shortURL}
+	shortURL := h.Service.AddNewURL(baseURL.Name)
+	shortenedURL := entities.ShortenedURL{Name: shortURL}
 	js, err := json.Marshal(shortenedURL)
 	if err != nil {
 		http.Error(w, "Error during building response json", http.StatusBadRequest)
