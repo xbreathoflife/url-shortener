@@ -90,10 +90,32 @@ func TestURLPostHandler(t *testing.T) {
 			method:     http.MethodGet,
 			request:    "/",
 		},
+		{
+			name:       "post json #1",
+			body:       []string{"{\"url\":\"https://yandex.ru/\"}"},
+			want: want{
+				contentType: "application/json",
+				statusCode:  201,
+				url:         []string{"{\"result\":\"http://localhost:8080/0\"}"},
+			},
+			method:     http.MethodPost,
+			request:    "/api/shorten",
+		},
+		{
+			name:       "post json error  parsing #1",
+			body:       []string{"{\"url:\"https://yandex.ru/\"}"},
+			want: want{
+				contentType: "text/plain; charset=utf-8",
+				statusCode:  400,
+				url:         []string{"Error during parsing request json\n"},
+			},
+			method:     http.MethodPost,
+			request:    "/api/shorten",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := NewURLServer()
+			server := NewURLServer("http://localhost:8080", "")
 			for i, element := range tt.body {
 				body := []byte(element)
 				request := httptest.NewRequest(tt.method, tt.request, bytes.NewBuffer(body))
@@ -139,7 +161,7 @@ func TestURLGetHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := NewURLServer()
+			server := NewURLServer("http://localhost:8080", "")
 			for i, element := range tt.body {
 				body := []byte(element)
 				request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBuffer(body))

@@ -1,22 +1,56 @@
 package storage
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+	"strconv"
+)
 import "github.com/xbreathoflife/url-shortener/internal/app/entities"
 
 type Storage struct {
-	urls   map[int]entities.URL
+	urls        map[int]entities.URL
+	fileStorage *FileStorage
+	BaseURL     string
 }
 
-func NewStorage() *Storage {
+func NewStorage(filePath string, baseURL string) *Storage {
 	storage := &Storage{}
 	storage.urls = make(map[int]entities.URL)
+	storage.BaseURL = baseURL
+
+	var err error
+	storage.fileStorage, err = New(filePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if storage.fileStorage != nil {
+		listOfURLs := storage.fileStorage.ReadAllURLsFromFile()
+		for i := 0; i < len(listOfURLs); i++ {
+			cur := listOfURLs[i]
+			storage.urls[cur.ID] = entities.URL{
+				BaseURL: cur.BaseURL,
+				ShortenedURL: baseURL + "/" + strconv.Itoa(cur.ID),
+			}
+		}
+	}
+
 	return storage
 }
 
 func (storage *Storage) AddURL(baseURL string, shortenedURL string) {
 	url := entities.URL{BaseURL: baseURL, ShortenedURL: shortenedURL}
-
-	storage.urls[len(storage.urls)] = url
+	id := len(storage.urls)
+	storage.urls[id] = url
+	if storage.fileStorage != nil {
+		storedURL := entities.StoredURL{
+			ID: id,
+			BaseURL: baseURL,
+		}
+		if err := storage.fileStorage.WriteEvent(storedURL); err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 func (storage *Storage) GetURL(id int) (string, error) {

@@ -14,9 +14,9 @@ type urlServer struct {
 	handlers *handler.Handler
 }
 
-func NewURLServer() *urlServer {
-	store := storage.NewStorage()
-	handlers := handler.Handler{Service: &core.URLService{Store: store} }
+func NewURLServer(baseURL string, filePath string) *urlServer {
+	store := storage.NewStorage(filePath, baseURL)
+	handlers := handler.Handler{Service: &core.URLService{Store: store}}
 	return &urlServer{store: store, handlers: &handlers}
 }
 
@@ -30,9 +30,14 @@ func (us *urlServer) URLHandler() *chi.Mux {
 	r.Post("/", func(rw http.ResponseWriter, r *http.Request) {
 		us.handlers.PostURLHandler(rw, r)
 	})
+
 	r.Get("/{urlID}", func(rw http.ResponseWriter, r *http.Request) {
 		urlID := chi.URLParam(r, "urlID")
 		us.handlers.GetURLHandler(rw, r, urlID)
+	})
+
+	r.Post("/api/shorten", func(rw http.ResponseWriter, r *http.Request) {
+		us.handlers.PostJSONURLHandler(rw, r)
 	})
 
 	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {
