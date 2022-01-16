@@ -14,8 +14,8 @@ type urlServer struct {
 	handlers *handler.Handler
 }
 
-func NewURLServer(baseURL string) *urlServer {
-	store := storage.NewStorage()
+func NewURLServer(baseURL string, filePath string) *urlServer {
+	store := storage.NewStorage(filePath)
 	handlers := handler.Handler{Service: &core.URLService{Store: store, BaseURL: baseURL}}
 	return &urlServer{store: store, handlers: &handlers}
 }

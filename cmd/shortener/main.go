@@ -9,7 +9,7 @@ import (
 
 func main() {
 	conf := config.Init()
-	urlServer := server.NewURLServer(conf.BaseURL)
+	urlServer := server.NewURLServer(conf.BaseURL, conf.FilePath)
 	r := urlServer.URLHandler()
 	log.Fatal(http.ListenAndServe(conf.Address, r))
 }

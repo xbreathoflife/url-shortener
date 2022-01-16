@@ -6,14 +6,16 @@ import (
 )
 
 type Config struct {
-	Address string `env:"SERVER_ADDRESS"`
-	BaseURL string `env:"BASE_URL"`
+	Address  string `env:"SERVER_ADDRESS"`
+	BaseURL  string `env:"BASE_URL"`
+	FilePath string `env:"FILE_STORAGE_PATH"`
 }
 
 func Init() Config {
 	cfg := Config{
 		Address: ":8080",
 		BaseURL: "http://localhost:8080",
+		FilePath: "",
 	}
 	err := env.Parse(&cfg)
 	if err != nil {
