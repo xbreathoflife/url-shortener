@@ -7,7 +7,6 @@ import (
 
 type URLService struct {
 	Store *storage.Storage
-	BaseURL string
 }
 
 func (us *URLService) GetURLByID(id int) (string, error) {
@@ -18,7 +17,7 @@ func (us *URLService) AddNewURL(baseURL string) string {
 	var shortenedURL string
 	if shortenedURL = us.Store.GetURLIfExist(baseURL); shortenedURL == "" {
 		urlID := us.Store.GetNextID()
-		shortenedURL = us.BaseURL + "/" + strconv.Itoa(urlID)
+		shortenedURL = us.Store.BaseURL + "/" + strconv.Itoa(urlID)
 		us.Store.AddURL(baseURL, shortenedURL)
 	}
 	return shortenedURL

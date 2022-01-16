@@ -31,15 +31,15 @@ func New(filePath string) (*FileStorage, error) {
 	}, nil
 }
 
-func (s *FileStorage) WriteEvent(u entities.URL) error {
+func (s *FileStorage) WriteEvent(u entities.StoredURL) error {
 	return s.encoder.Encode(u)
 }
 
-func (s *FileStorage) ReadAllURLsFromFile() []entities.URL {
-	var listOfURLs []entities.URL
+func (s *FileStorage) ReadAllURLsFromFile() []entities.StoredURL {
+	var listOfURLs []entities.StoredURL
 
 	for {
-		var u entities.URL
+		var u entities.StoredURL
 		err := s.decoder.Decode(&u)
 		if err == io.EOF {
 			break
