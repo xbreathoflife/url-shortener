@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/xbreathoflife/url-shortener/internal/app/compress"
 	"github.com/xbreathoflife/url-shortener/internal/app/core"
 	"github.com/xbreathoflife/url-shortener/internal/app/handler"
 	"github.com/xbreathoflife/url-shortener/internal/app/storage"
@@ -26,6 +27,9 @@ func (us *urlServer) URLHandler() *chi.Mux {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	r.Use(compress.GzipDecoder)
+	r.Use(compress.GzipEncoder)
 
 	r.Post("/", func(rw http.ResponseWriter, r *http.Request) {
 		us.handlers.PostURLHandler(rw, r)
