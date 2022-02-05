@@ -124,3 +124,11 @@ func(h *Handler) PostJSONURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (h *Handler) GetPing(w http.ResponseWriter, r *http.Request) {
+	_, err := h.Service.DBStore.Connect()
+	if err != nil {
+		http.Error(w, "Couldn't connect to DB", http.StatusInternalServerError)
+	}
+	w.WriteHeader(http.StatusOK)
+}

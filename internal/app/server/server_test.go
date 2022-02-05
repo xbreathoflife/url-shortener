@@ -135,7 +135,7 @@ func TestURLPostHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := NewURLServer("http://localhost:8080", "")
+			server := NewURLServer("http://localhost:8080", "", "")
 			cookie := http.Cookie{}
 			for i, element := range tt.body {
 				body := []byte(element)
@@ -202,7 +202,7 @@ func TestURLGetHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := NewURLServer("http://localhost:8080", "")
+			server := NewURLServer("http://localhost:8080", "", "")
 			cookie := http.Cookie{}
 			for i, element := range tt.body {
 				body := []byte(element)

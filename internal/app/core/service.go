@@ -7,7 +7,8 @@ import (
 )
 
 type URLService struct {
-	Store *storage.Storage
+	Store   *storage.Storage
+	DBStore *storage.DBStorage
 }
 
 func (us *URLService) GetURLByID(id int) (string, error) {

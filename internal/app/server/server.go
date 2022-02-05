@@ -12,14 +12,16 @@ import (
 )
 
 type urlServer struct {
-	store *storage.Storage
-	handlers *handler.Handler
+	store     *storage.Storage
+	dbStorage *storage.DBStorage
+	handlers  *handler.Handler
 }
 
-func NewURLServer(baseURL string, filePath string) *urlServer {
+func NewURLServer(baseURL string, filePath string, connString string) *urlServer {
 	store := storage.NewStorage(filePath, baseURL)
-	handlers := handler.Handler{Service: &core.URLService{Store: store}}
-	return &urlServer{store: store, handlers: &handlers}
+	dbStorage := storage.NewDBStorage(connString)
+	handlers := handler.Handler{Service: &core.URLService{Store: store, DBStore: dbStorage}}
+	return &urlServer{store: store, dbStorage: dbStorage, handlers: &handlers}
 }
 
 func (us *urlServer) URLHandler() *chi.Mux {
@@ -48,6 +50,10 @@ func (us *urlServer) URLHandler() *chi.Mux {
 
 	r.Get("/user/urls", func(rw http.ResponseWriter, r *http.Request) {
 		us.handlers.GetUserURLs(rw, r)
+	})
+
+	r.Get("/ping", func(rw http.ResponseWriter, r *http.Request) {
+		us.handlers.GetPing(rw, r)
 	})
 
 	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {
