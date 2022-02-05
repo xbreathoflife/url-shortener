@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/xbreathoflife/url-shortener/internal/app/entities"
+	"log"
 )
 const (
 	createTableQuery = "CREATE TABLE IF NOT EXISTS url(" +
@@ -42,6 +43,7 @@ func (s *DBStorage) Init(ctx context.Context) error {
 	}
 	defer conn.Close(ctx)
 	_, err = conn.Exec(ctx, createTableQuery)
+
 	return err
 }
 
@@ -57,6 +59,9 @@ func (s *DBStorage) CheckConnect(ctx context.Context) error {
 }
 
 func (s *DBStorage) connect(ctx context.Context) (*pgx.Conn, error) {
+	if s.ConnString == "" {
+		log.Fatal("Connection string is empty\n")
+	}
 	conn, err := pgx.Connect(ctx, s.ConnString)
 	if err != nil {
 		fmt.Printf("Unable to connect to database: %v\n", err)
@@ -146,10 +151,9 @@ func (s *DBStorage) GetURLIfExist(ctx context.Context, url string) (string, erro
 
 	defer conn.Close(ctx)
 	var str sql.NullString
-	row := conn.QueryRow(ctx, getExistingURL, url)
-	err = row.Scan(&str)
+	err = conn.QueryRow(ctx, getExistingURL, url).Scan(&str)
 
-	if err != nil {
+	if err != nil && err.Error() != "no rows in result set" {
 		return "", err
 	}
 
