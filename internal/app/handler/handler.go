@@ -55,7 +55,7 @@ func (h *Handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(js)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
