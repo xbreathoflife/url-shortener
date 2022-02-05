@@ -133,6 +133,39 @@ func TestURLPostHandler(t *testing.T) {
 			request:    "/api/shorten",
 			userURLs: []entities.URL{},
 		},
+		{
+			name:       "post json batch",
+			body:       []string{"[" +
+				"{" +
+				"\"correlation_id\":\"8abb929e-4a99-438a-a2f5-b26c33d85101\"," +
+				"\"original_url\":\"http://qviettyp5mc.net/jjsthsycn/oiyk66x7mx\"" +
+				"}," +
+				"{" +
+				"\"correlation_id\":\"23fd47a9-bddb-48cb-9b4c-1b26bfabf6c6\"," +
+				"\"original_url\":\"http://co8azyu4xvsjw.com/bl97mmxon1ij\"" +
+				"}" +
+				"]"},
+			want: want{
+				contentType: "application/json",
+				statusCode:  201,
+				url:         []string{"[" +
+					"{" +
+					"\"short_url\":\"http://localhost:8080/0\"," +
+					"\"correlation_id\":\"8abb929e-4a99-438a-a2f5-b26c33d85101\"" +
+					"}," +
+					"{" +
+					"\"short_url\":\"http://localhost:8080/1\"," +
+					"\"correlation_id\":\"23fd47a9-bddb-48cb-9b4c-1b26bfabf6c6\"" +
+					"}" +
+					"]"},
+			},
+			method:     http.MethodPost,
+			request:    "/api/shorten/batch",
+			userURLs: []entities.URL{
+				{BaseURL: "http://qviettyp5mc.net/jjsthsycn/oiyk66x7mx", ShortenedURL: "http://localhost:8080/0"},
+				{BaseURL: "http://co8azyu4xvsjw.com/bl97mmxon1ij", ShortenedURL: "http://localhost:8080/1"},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
