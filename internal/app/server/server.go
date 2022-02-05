@@ -54,6 +54,10 @@ func (us *urlServer) URLHandler() *chi.Mux {
 		us.handlers.PostJSONURLHandler(rw, r)
 	})
 
+	r.Post("/api/shorten/batch", func(rw http.ResponseWriter, r *http.Request) {
+		us.handlers.PostJSONURLBatchHandler(rw, r)
+	})
+
 	r.Get("/user/urls", func(rw http.ResponseWriter, r *http.Request) {
 		us.handlers.GetUserURLs(rw, r)
 	})

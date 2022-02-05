@@ -9,6 +9,7 @@ type Storage interface {
 	Init(ctx context.Context) error
 	CheckConnect(ctx context.Context) error
 	InsertNewURL(ctx context.Context, id int, baseURL string, shortenedURL string, uuid string) error
+	InsertBatch(ctx context.Context, records []entities.Record) error
 	GetURLByID(ctx context.Context, id int) (string, error)
 	GetUserURLs(ctx context.Context, uuid string) ([]entities.URL, error)
 	GetNextID(ctx context.Context) (int, error)

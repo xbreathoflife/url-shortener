@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/jackc/pgx/v4"
+	_ "github.com/jackc/pgx/stdlib"
 	"github.com/xbreathoflife/url-shortener/internal/app/entities"
 	"log"
 )
+
 const (
 	createTableQuery = "CREATE TABLE IF NOT EXISTS url(" +
 		"    id           SERIAL PRIMARY KEY," +
@@ -41,28 +42,28 @@ func (s *DBStorage) Init(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close(ctx)
-	_, err = conn.Exec(ctx, createTableQuery)
+	defer conn.Close()
+	_, err = conn.ExecContext(ctx, createTableQuery)
 
 	return err
 }
 
-func (s *DBStorage) CheckConnect(ctx context.Context) error {
-	conn, err := pgx.Connect(ctx, s.ConnString)
+func (s *DBStorage) CheckConnect(_ context.Context) error {
+	conn, err := sql.Open("pgx", s.ConnString)
 	if err != nil {
 		fmt.Printf("Unable to connect to database: %v\n", err)
 		return err
 	}
-	defer conn.Close(ctx)
+	defer conn.Close()
 
 	return nil
 }
 
-func (s *DBStorage) connect(ctx context.Context) (*pgx.Conn, error) {
+func (s *DBStorage) connect(_ context.Context) (*sql.DB, error) {
 	if s.ConnString == "" {
 		log.Fatal("Connection string is empty\n")
 	}
-	conn, err := pgx.Connect(ctx, s.ConnString)
+	conn, err := sql.Open("pgx", s.ConnString)
 	if err != nil {
 		fmt.Printf("Unable to connect to database: %v\n", err)
 		return nil, err
@@ -76,9 +77,9 @@ func (s *DBStorage) InsertNewURL(ctx context.Context, id int, baseURL string, sh
 	if err != nil {
 		return err
 	}
-	defer conn.Close(ctx)
+	defer conn.Close()
 
-	_, err = conn.Exec(ctx, insertURLQuery, id, baseURL, shortenedURL, uuid)
+	_, err = conn.ExecContext(ctx, insertURLQuery, id, baseURL, shortenedURL, uuid)
 	return err
 }
 
@@ -88,9 +89,9 @@ func (s *DBStorage) GetURLByID(ctx context.Context, id int) (string, error) {
 		return "", err
 	}
 
-	defer conn.Close(ctx)
+	defer conn.Close()
 	var u string
-	row := conn.QueryRow(ctx, getURLByIDQuery, id)
+	row := conn.QueryRowContext(ctx, getURLByIDQuery, id)
 	err = row.Scan(&u)
 	if err != nil {
 		fmt.Printf("Unable to get row count: %v\n", err)
@@ -105,8 +106,8 @@ func (s *DBStorage) GetUserURLs(ctx context.Context, uuid string) ([]entities.UR
 		return nil, err
 	}
 
-	defer conn.Close(ctx)
-	rows, err := conn.Query(ctx, getURLsByUserQuery, uuid)
+	defer conn.Close()
+	rows, err := conn.QueryContext(ctx, getURLsByUserQuery, uuid)
 
 	if err != nil {
 		return nil, err
@@ -131,9 +132,9 @@ func (s *DBStorage) GetNextID(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
-	defer conn.Close(ctx)
+	defer conn.Close()
 	var id int
-	row := conn.QueryRow(ctx, countURLQuery)
+	row := conn.QueryRowContext(ctx, countURLQuery)
 	err = row.Scan(&id)
 	if err != nil {
 		fmt.Printf("Unable to get row count: %v\n", err)
@@ -149,9 +150,9 @@ func (s *DBStorage) GetURLIfExist(ctx context.Context, url string) (string, erro
 		return "", err
 	}
 
-	defer conn.Close(ctx)
+	defer conn.Close()
 	var str sql.NullString
-	err = conn.QueryRow(ctx, getExistingURL, url).Scan(&str)
+	err = conn.QueryRowContext(ctx, getExistingURL, url).Scan(&str)
 
 	if err != nil && err.Error() != "no rows in result set" {
 		return "", err
@@ -165,4 +166,37 @@ func (s *DBStorage) GetURLIfExist(ctx context.Context, url string) (string, erro
 
 func (s *DBStorage) GetBaseURL() string {
 	return s.BaseURL
+}
+
+func (s *DBStorage) InsertBatch(ctx context.Context, records []entities.Record) error {
+	db, err := s.connect(ctx)
+	defer db.Close()
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("INSERT INTO url(id, original_url, short_url, uuid) VALUES ($1, $2, $3, $4)")
+	if err != nil {
+		return err
+	}
+
+	for _, r := range records {
+		if _, err = stmt.Exec(r.ID, r.BaseURL, r.ShortenedURL, r.UserID); err != nil {
+			if err = tx.Rollback(); err != nil {
+				return err
+			}
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
 }

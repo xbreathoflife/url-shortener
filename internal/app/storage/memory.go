@@ -64,6 +64,16 @@ func (storage *MemoryStorage) InsertNewURL(_ context.Context, id int, baseURL st
 	return nil
 }
 
+func (storage *MemoryStorage) InsertBatch(ctx context.Context, records []entities.Record) error {
+	for _, r := range records {
+		err := storage.InsertNewURL(ctx, r.ID, r.BaseURL, r.ShortenedURL, r.UserID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (storage *MemoryStorage) GetURLByID(_ context.Context, id int) (string, error) {
 	url, ok := storage.urls[id]
 	if ok {

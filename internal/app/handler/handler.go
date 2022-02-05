@@ -138,6 +138,48 @@ func(h *Handler) PostJSONURLHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func(h *Handler) PostJSONURLBatchHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handling post URL at %s\n", r.URL.Path)
+
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var urls []entities.BatchURLRequest
+	if err := json.Unmarshal(b, &urls); err != nil {
+		http.Error(w, "Error during parsing request json", http.StatusBadRequest)
+		return
+	}
+
+	if len(urls) == 0 {
+		http.Error(w, "Empty body", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	uuid := ctx.Value(auth.CtxKey).(string)
+	records, err := h.Service.AddURLsBatch(ctx, urls, uuid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	js, err := json.Marshal(records)
+	if err != nil {
+		http.Error(w, "Error during building response json", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(js)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func (h *Handler) GetPing(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	err := h.Service.Storage.CheckConnect(ctx)
