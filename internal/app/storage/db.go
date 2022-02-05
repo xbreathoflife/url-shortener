@@ -37,10 +37,10 @@ func NewDBStorage(connString string, baseURL string) *DBStorage {
 
 func (s *DBStorage) Init(ctx context.Context) error {
 	conn, err := s.connect(ctx)
-	defer conn.Close(ctx)
 	if err != nil {
 		return err
 	}
+	defer conn.Close(ctx)
 	_, err = conn.Exec(ctx, createTableQuery)
 	return err
 }
@@ -148,6 +148,10 @@ func (s *DBStorage) GetURLIfExist(ctx context.Context, url string) (string, erro
 	var str sql.NullString
 	row := conn.QueryRow(ctx, getExistingURL, url)
 	err = row.Scan(&str)
+
+	if err != nil {
+		return "", err
+	}
 
 	if str.Valid {
 		return str.String, nil

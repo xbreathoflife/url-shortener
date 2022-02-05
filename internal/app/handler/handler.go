@@ -46,7 +46,7 @@ func (h *Handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	URLsForUser, err := h.Service.GetUserURLs(ctx, uuid)
 	w.Header().Set("Content-Type", "application/json")
 
-	if err != nil {
+	if err != nil || len(URLsForUser) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
