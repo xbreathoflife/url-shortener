@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/xbreathoflife/url-shortener/config"
 	"github.com/xbreathoflife/url-shortener/internal/app/server"
+	"github.com/xbreathoflife/url-shortener/internal/app/storage"
 	"log"
 	"net/http"
 )
@@ -35,7 +36,8 @@ func parseFlags(conf *config.Config) {
 func main() {
 	conf := config.Init()
 	parseFlags(&conf)
-	urlServer := server.NewURLServer(conf.BaseURL, conf.FilePath, conf.ConnString)
+	dbStorage := storage.NewDBStorage(conf.ConnString, conf.BaseURL)
+	urlServer := server.NewURLServer(dbStorage)
 	r := urlServer.URLHandler()
 	log.Fatal(http.ListenAndServe(conf.Address, r))
 }

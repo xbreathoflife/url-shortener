@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/xbreathoflife/url-shortener/internal/app/auth"
@@ -8,20 +9,25 @@ import (
 	"github.com/xbreathoflife/url-shortener/internal/app/core"
 	"github.com/xbreathoflife/url-shortener/internal/app/handler"
 	"github.com/xbreathoflife/url-shortener/internal/app/storage"
+	"log"
 	"net/http"
 )
 
 type urlServer struct {
-	store     *storage.Storage
-	dbStorage *storage.DBStorage
+	storage   storage.Storage
 	handlers  *handler.Handler
 }
 
-func NewURLServer(baseURL string, filePath string, connString string) *urlServer {
-	store := storage.NewStorage(filePath, baseURL)
-	dbStorage := storage.NewDBStorage(connString)
-	handlers := handler.Handler{Service: &core.URLService{Store: store, DBStore: dbStorage}}
-	return &urlServer{store: store, dbStorage: dbStorage, handlers: &handlers}
+func NewURLServer(storage storage.Storage) *urlServer {
+	ctx := context.Background()
+	err := storage.Init(ctx)
+	if err != nil {
+		log.Printf("error while initializing storage: %v", err)
+		return nil
+	}
+
+	handlers := handler.Handler{Service: &core.URLService{Storage: storage}}
+	return &urlServer{storage: storage, handlers: &handlers}
 }
 
 func (us *urlServer) URLHandler() *chi.Mux {

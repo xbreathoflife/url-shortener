@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/xbreathoflife/url-shortener/internal/app/entities"
+	storage "github.com/xbreathoflife/url-shortener/internal/app/storage"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -135,7 +136,8 @@ func TestURLPostHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := NewURLServer("http://localhost:8080", "", "")
+			store := storage.NewStorage("", "http://localhost:8080")
+			server := NewURLServer(store)
 			cookie := http.Cookie{}
 			for i, element := range tt.body {
 				body := []byte(element)
@@ -202,7 +204,8 @@ func TestURLGetHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := NewURLServer("http://localhost:8080", "", "")
+			store := storage.NewStorage("", "http://localhost:8080")
+			server := NewURLServer(store)
 			cookie := http.Cookie{}
 			for i, element := range tt.body {
 				body := []byte(element)

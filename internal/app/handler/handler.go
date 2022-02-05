@@ -28,7 +28,8 @@ func (h *Handler) GetURLHandler(w http.ResponseWriter, r *http.Request, urlID st
 		return
 	}
 
-	url, err := h.Service.GetURLByID(id)
+	ctx := r.Context()
+	url, err := h.Service.GetURLByID(ctx, id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -39,9 +40,10 @@ func (h *Handler) GetURLHandler(w http.ResponseWriter, r *http.Request, urlID st
 func (h *Handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handling get user URLs at %s\n", r.URL.Path)
 
-	uuid := r.Context().Value(auth.CtxKey).(string)
+	ctx := r.Context()
+	uuid := ctx.Value(auth.CtxKey).(string)
 
-	URLsForUser, err := h.Service.GetUserURLs(uuid)
+	URLsForUser, err := h.Service.GetUserURLs(ctx, uuid)
 	w.Header().Set("Content-Type", "application/json")
 
 	if err != nil {
@@ -65,7 +67,6 @@ func (h *Handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 
 func(h *Handler) PostURLHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handling post URL at %s\n", r.URL.Path)
-	uuid := r.Context().Value(auth.CtxKey).(string)
 
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -78,7 +79,13 @@ func(h *Handler) PostURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortenedURL := h.Service.AddNewURL(baseURL, uuid)
+	ctx := r.Context()
+	uuid := ctx.Value(auth.CtxKey).(string)
+	shortenedURL, err := h.Service.AddNewURL(ctx, baseURL, uuid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
@@ -92,7 +99,6 @@ func(h *Handler) PostURLHandler(w http.ResponseWriter, r *http.Request) {
 func(h *Handler) PostJSONURLHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handling post URL at %s\n", r.URL.Path)
 
-	uuid := r.Context().Value(auth.CtxKey).(string)
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -108,7 +114,14 @@ func(h *Handler) PostJSONURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL := h.Service.AddNewURL(baseURL.Name, uuid)
+	ctx := r.Context()
+	uuid := ctx.Value(auth.CtxKey).(string)
+	shortURL, err := h.Service.AddNewURL(ctx, baseURL.Name, uuid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	shortenedURL := entities.ShortenedURL{Name: shortURL}
 	js, err := json.Marshal(shortenedURL)
 	if err != nil {
@@ -126,7 +139,8 @@ func(h *Handler) PostJSONURLHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetPing(w http.ResponseWriter, r *http.Request) {
-	_, err := h.Service.DBStore.Connect()
+	ctx := r.Context()
+	err := h.Service.Storage.CheckConnect(ctx)
 	if err != nil {
 		http.Error(w, "Couldn't connect to DB", http.StatusInternalServerError)
 	}
