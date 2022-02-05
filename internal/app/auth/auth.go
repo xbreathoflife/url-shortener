@@ -18,11 +18,11 @@ func AuthToken(next http.Handler) http.Handler {
 		var uuid string
 		if err != nil {
 			uuid = core.GenerateUUID()
-			encryptedUuid, err := core.Encrypt(uuid)
+			encryptedUUID, err := core.Encrypt(uuid)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
-			newCookie := http.Cookie{Name: "uuid", Value: encryptedUuid}
+			newCookie := http.Cookie{Name: "uuid", Value: encryptedUUID}
 			http.SetCookie(w, &newCookie)
 		} else {
 			uuid, err  = core.Decrypt(cookie.Value)

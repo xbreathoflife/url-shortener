@@ -18,7 +18,6 @@ type Handler struct {
 func (h *Handler) GetURLHandler(w http.ResponseWriter, r *http.Request, urlID string) {
 	log.Printf("handling get URL at %s\n", r.URL.Path)
 
-	uuid := r.Context().Value(auth.CtxKey).(string)
 	if urlID == "" {
 		http.Error(w, "urlID param is missed", http.StatusBadRequest)
 		return
@@ -29,7 +28,7 @@ func (h *Handler) GetURLHandler(w http.ResponseWriter, r *http.Request, urlID st
 		return
 	}
 
-	url, err := h.Service.GetURLByID(id, uuid)
+	url, err := h.Service.GetURLByID(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -50,13 +49,7 @@ func (h *Handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	URLsList := make([]entities.URL, 0, len(URLsForUser))
-
-	for  _, value := range URLsForUser {
-		URLsList = append(URLsList, value)
-	}
-
-	js, err := json.Marshal(URLsList)
+	js, err := json.Marshal(URLsForUser)
 	if err != nil {
 		http.Error(w, "Error during building response json", http.StatusBadRequest)
 		return

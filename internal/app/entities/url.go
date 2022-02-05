@@ -3,6 +3,7 @@ package entities
 type URL struct {
 	BaseURL      string `json:"original_url"`
 	ShortenedURL string `json:"short_url"`
+	UserID       string `json:"-"`
 }
 
 type StoredURL struct {

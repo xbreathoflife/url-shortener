@@ -218,7 +218,8 @@ func TestURLGetHandler(t *testing.T) {
 					uuid := result.Cookies()[0]
 					cookie = http.Cookie{Name: uuid.Name, Value: uuid.Value}
 				}
-
+				err := result.Body.Close()
+				require.NoError(t, err)
 				target := tt.request + strconv.Itoa(i)
 				getRequest := httptest.NewRequest(http.MethodGet, target, nil)
 				getRequest.AddCookie(&cookie)
@@ -229,7 +230,7 @@ func TestURLGetHandler(t *testing.T) {
 				assert.Equal(t, tt.want.statusCode, result.StatusCode)
 				assert.Equal(t, element, w.Header().Get("Location"))
 
-				err := result.Body.Close()
+				err = result.Body.Close()
 				require.NoError(t, err)
 			}
 		})
