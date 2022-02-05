@@ -1,11 +1,12 @@
 package entities
 
 type URL struct {
-	BaseURL      string
-	ShortenedURL string
+	BaseURL      string `json:"original_url"`
+	ShortenedURL string `json:"short_url"`
 }
 
 type StoredURL struct {
+	UserID  string `json:"uuid"`
 	BaseURL string `json:"url"`
 	ID      int    `json:"id"`
 }

@@ -2,8 +2,10 @@ package server
 
 import (
 	"bytes"
+	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/xbreathoflife/url-shortener/internal/app/entities"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -18,11 +20,12 @@ func TestURLPostHandler(t *testing.T) {
 		url         []string
 	}
 	tests := []struct {
-		name    string
-		request string
-		body    []string
-		method  string
-		want    want
+		name     string
+		request  string
+		userURLs []entities.URL
+		body     []string
+		method   string
+		want     want
 	}{
 		{
 			name: "multiple posts",
@@ -34,6 +37,11 @@ func TestURLPostHandler(t *testing.T) {
 			},
 			method:     http.MethodPost,
 			request: "/",
+			userURLs: []entities.URL{
+				{BaseURL: "https://yandex.ru/", ShortenedURL: "http://localhost:8080/0"},
+				{BaseURL: "https://www.google.ru/", ShortenedURL: "http://localhost:8080/1"},
+				{BaseURL: "https://www.youtube.com/", ShortenedURL: "http://localhost:8080/2"},
+				},
 		},
 		{
 			name: "repeated url",
@@ -45,6 +53,10 @@ func TestURLPostHandler(t *testing.T) {
 			},
 			method:     http.MethodPost,
 			request: "/",
+			userURLs: []entities.URL{
+				{BaseURL: "https://yandex.ru/", ShortenedURL: "http://localhost:8080/0"},
+				{BaseURL: "https://www.google.ru/", ShortenedURL: "http://localhost:8080/1"},
+			},
 		},
 		{
 			name: "wrong path #1",
@@ -56,6 +68,7 @@ func TestURLPostHandler(t *testing.T) {
 			},
 			method:     http.MethodPost,
 			request: "/0",
+			userURLs: []entities.URL{},
 		},
 		{
 			name:       "post instead of get",
@@ -67,6 +80,7 @@ func TestURLPostHandler(t *testing.T) {
 			},
 			method:     http.MethodPost,
 			request:    "/1",
+			userURLs: []entities.URL{},
 		},
 		{
 			name:       "not number in get",
@@ -78,6 +92,7 @@ func TestURLPostHandler(t *testing.T) {
 			},
 			method:     http.MethodGet,
 			request:    "/notnumber",
+			userURLs: []entities.URL{},
 		},
 		{
 			name:       "get instead of post",
@@ -89,6 +104,7 @@ func TestURLPostHandler(t *testing.T) {
 			},
 			method:     http.MethodGet,
 			request:    "/",
+			userURLs: []entities.URL{},
 		},
 		{
 			name:       "post json #1",
@@ -100,6 +116,9 @@ func TestURLPostHandler(t *testing.T) {
 			},
 			method:     http.MethodPost,
 			request:    "/api/shorten",
+			userURLs: []entities.URL{
+				{BaseURL: "https://yandex.ru/", ShortenedURL: "http://localhost:8080/0"},
+			},
 		},
 		{
 			name:       "post json error  parsing #1",
@@ -111,19 +130,25 @@ func TestURLPostHandler(t *testing.T) {
 			},
 			method:     http.MethodPost,
 			request:    "/api/shorten",
+			userURLs: []entities.URL{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := NewURLServer("http://localhost:8080", "")
+			cookie := http.Cookie{}
 			for i, element := range tt.body {
 				body := []byte(element)
 				request := httptest.NewRequest(tt.method, tt.request, bytes.NewBuffer(body))
 				w := httptest.NewRecorder()
+				request.AddCookie(&cookie)
 				h := server.URLHandler()
 				h.ServeHTTP(w, request)
 				result := w.Result()
-
+				if len(result.Cookies()) > 0 {
+					uuid := result.Cookies()[0]
+					cookie = http.Cookie{Name: uuid.Name, Value: uuid.Value}
+				}
 				assert.Equal(t, tt.want.statusCode, result.StatusCode)
 				assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
 
@@ -133,6 +158,22 @@ func TestURLPostHandler(t *testing.T) {
 				require.NoError(t, err)
 
 				assert.Equal(t, tt.want.url[i], string(urlResult))
+			}
+			if tt.want.statusCode != http.StatusBadRequest {
+				request := httptest.NewRequest(http.MethodGet, "/user/urls", bytes.NewBuffer(nil))
+				request.AddCookie(&cookie)
+				w := httptest.NewRecorder()
+				h := server.URLHandler()
+				h.ServeHTTP(w, request)
+				result := w.Result()
+				urlResult, err := ioutil.ReadAll(result.Body)
+				require.NoError(t, err)
+				err = result.Body.Close()
+				require.NoError(t, err)
+				var URLs []entities.URL
+				err = json.Unmarshal(urlResult, &URLs)
+				require.NoError(t, err)
+				assert.ElementsMatch(t, tt.userURLs, URLs)
 			}
 		})
 	}
@@ -162,17 +203,28 @@ func TestURLGetHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := NewURLServer("http://localhost:8080", "")
+			cookie := http.Cookie{}
 			for i, element := range tt.body {
 				body := []byte(element)
 				request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBuffer(body))
 				w := httptest.NewRecorder()
+				request.AddCookie(&cookie)
 				h := server.URLHandler()
 				h.ServeHTTP(w, request)
+
+				result := w.Result()
+
+				if len(result.Cookies()) > 0 {
+					uuid := result.Cookies()[0]
+					cookie = http.Cookie{Name: uuid.Name, Value: uuid.Value}
+				}
+
 				target := tt.request + strconv.Itoa(i)
 				getRequest := httptest.NewRequest(http.MethodGet, target, nil)
+				getRequest.AddCookie(&cookie)
 				w = httptest.NewRecorder()
 				h.ServeHTTP(w, getRequest)
-				result := w.Result()
+				result = w.Result()
 
 				assert.Equal(t, tt.want.statusCode, result.StatusCode)
 				assert.Equal(t, element, w.Header().Get("Location"))
