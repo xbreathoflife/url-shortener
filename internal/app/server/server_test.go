@@ -17,7 +17,7 @@ import (
 func TestURLPostHandler(t *testing.T) {
 	type want struct {
 		contentType string
-		statusCode  int
+		statusCode  []int
 		url         []string
 	}
 	tests := []struct {
@@ -33,7 +33,7 @@ func TestURLPostHandler(t *testing.T) {
 			body: []string{"https://yandex.ru/", "https://www.google.ru/", "https://www.youtube.com/"},
 			want: want{
 				contentType: "text/plain; charset=utf-8",
-				statusCode:  201,
+				statusCode:  []int{201, 201, 201},
 				url:         []string{"http://localhost:8080/0", "http://localhost:8080/1", "http://localhost:8080/2"},
 			},
 			method:     http.MethodPost,
@@ -49,7 +49,7 @@ func TestURLPostHandler(t *testing.T) {
 			body: []string{"https://yandex.ru/", "https://www.google.ru/", "https://yandex.ru/"},
 			want: want{
 				contentType: "text/plain; charset=utf-8",
-				statusCode:  201,
+				statusCode:  []int{201, 201, 409},
 				url:         []string{"http://localhost:8080/0", "http://localhost:8080/1", "http://localhost:8080/0"},
 			},
 			method:     http.MethodPost,
@@ -64,7 +64,7 @@ func TestURLPostHandler(t *testing.T) {
 			body: []string{"https://yandex.ru/"},
 			want: want{
 				contentType: "text/plain; charset=utf-8",
-				statusCode:  400,
+				statusCode:  []int{400},
 				url:         []string{"Wrong path\n"},
 			},
 			method:     http.MethodPost,
@@ -76,7 +76,7 @@ func TestURLPostHandler(t *testing.T) {
 			body:       []string{"https://yandex.ru/"},
 			want: want{
 				contentType: "text/plain; charset=utf-8",
-				statusCode:  400,
+				statusCode:  []int{400},
 				url:         []string{"Wrong path\n"},
 			},
 			method:     http.MethodPost,
@@ -88,7 +88,7 @@ func TestURLPostHandler(t *testing.T) {
 			body:       nil,
 			want: want{
 				contentType: "text/plain; charset=utf-8",
-				statusCode:  400,
+				statusCode:  []int{400},
 				url:         []string{"Wrong path\n"},
 			},
 			method:     http.MethodGet,
@@ -100,7 +100,7 @@ func TestURLPostHandler(t *testing.T) {
 			body:       nil,
 			want: want{
 				contentType: "text/plain; charset=utf-8",
-				statusCode:  400,
+				statusCode:  []int{400},
 				url:         []string{"Wrong path\n"},
 			},
 			method:     http.MethodGet,
@@ -112,7 +112,7 @@ func TestURLPostHandler(t *testing.T) {
 			body:       []string{"{\"url\":\"https://yandex.ru/\"}"},
 			want: want{
 				contentType: "application/json",
-				statusCode:  201,
+				statusCode:  []int{201},
 				url:         []string{"{\"result\":\"http://localhost:8080/0\"}"},
 			},
 			method:     http.MethodPost,
@@ -126,7 +126,7 @@ func TestURLPostHandler(t *testing.T) {
 			body:       []string{"{\"url:\"https://yandex.ru/\"}"},
 			want: want{
 				contentType: "text/plain; charset=utf-8",
-				statusCode:  400,
+				statusCode:  []int{400},
 				url:         []string{"Error during parsing request json\n"},
 			},
 			method:     http.MethodPost,
@@ -147,7 +147,7 @@ func TestURLPostHandler(t *testing.T) {
 				"]"},
 			want: want{
 				contentType: "application/json",
-				statusCode:  201,
+				statusCode:  []int{201},
 				url:         []string{"[" +
 					"{" +
 					"\"short_url\":\"http://localhost:8080/0\"," +
@@ -184,7 +184,7 @@ func TestURLPostHandler(t *testing.T) {
 					uuid := result.Cookies()[0]
 					cookie = http.Cookie{Name: uuid.Name, Value: uuid.Value}
 				}
-				assert.Equal(t, tt.want.statusCode, result.StatusCode)
+				assert.Equal(t, tt.want.statusCode[i], result.StatusCode)
 				assert.Equal(t, tt.want.contentType, w.Header().Get("Content-Type"))
 
 				urlResult, err := ioutil.ReadAll(result.Body)
@@ -194,7 +194,7 @@ func TestURLPostHandler(t *testing.T) {
 
 				assert.Equal(t, tt.want.url[i], string(urlResult))
 			}
-			if tt.want.statusCode != http.StatusBadRequest {
+			if tt.want.statusCode[0] != http.StatusBadRequest {
 				request := httptest.NewRequest(http.MethodGet, "/user/urls", bytes.NewBuffer(nil))
 				request.AddCookie(&cookie)
 				w := httptest.NewRecorder()
