@@ -2,8 +2,8 @@ package storage
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"github.com/xbreathoflife/url-shortener/internal/app/errors"
 	"log"
 	"strconv"
 )
@@ -48,7 +48,15 @@ func (storage *MemoryStorage) CheckConnect(_ context.Context) error {
 	return nil
 }
 
-func (storage *MemoryStorage) InsertNewURL(_ context.Context, id int, baseURL string, shortenedURL string, uuid string) error {
+func (storage *MemoryStorage) InsertNewURL(ctx context.Context, id int, baseURL string, shortenedURL string, uuid string) error {
+	shortURL, err := storage.GetURLIfExist(ctx, baseURL)
+	if err != nil {
+		return err
+	}
+	if shortURL != "" {
+		return errors.NewULRDuplicateError(baseURL, shortURL)
+	}
+
 	url := entities.URL{BaseURL: baseURL, ShortenedURL: shortenedURL, UserID: uuid}
 	storage.urls[id] = url
 	if storage.fileStorage != nil {
@@ -91,8 +99,9 @@ func (storage *MemoryStorage) GetUserURLs(_ context.Context, uuid string) ([]ent
 			urls = append(urls, value)
 		}
 	}
+
 	if len(urls) == 0 {
-		return nil, errors.New("no urls for this user")
+		return nil, errors.NewEmptyStorageError(uuid)
 	}
 	return urls, nil
 }

@@ -13,6 +13,5 @@ type Storage interface {
 	GetURLByID(ctx context.Context, id int) (string, error)
 	GetUserURLs(ctx context.Context, uuid string) ([]entities.URL, error)
 	GetNextID(ctx context.Context) (int, error)
-	GetURLIfExist(ctx context.Context, url string) (string, error)
 	GetBaseURL() string
 }

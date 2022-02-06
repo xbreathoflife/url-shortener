@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	_ "github.com/jackc/pgerrcode"
 	_ "github.com/jackc/pgx/stdlib"
 	"github.com/xbreathoflife/url-shortener/internal/app/entities"
+	"github.com/xbreathoflife/url-shortener/internal/app/errors"
 	"log"
 )
 
@@ -19,7 +21,7 @@ const (
 
 	countURLQuery = "SELECT COUNT(*) as count FROM url"
 
-	insertURLQuery = "INSERT INTO url(id, original_url, short_url, uuid) VALUES ($1, $2, $3, $4)"
+	insertURLQuery = "INSERT INTO url(id, original_url, short_url, uuid) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
 
 	getURLByIDQuery = "SELECT original_url FROM url WHERE id = $1"
 
@@ -79,7 +81,23 @@ func (s *DBStorage) InsertNewURL(ctx context.Context, id int, baseURL string, sh
 	}
 	defer conn.Close()
 
-	_, err = conn.ExecContext(ctx, insertURLQuery, id, baseURL, shortenedURL, uuid)
+	result, err := conn.ExecContext(ctx, insertURLQuery, id, baseURL, shortenedURL, uuid)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		var shortURL string
+		err = conn.QueryRowContext(ctx, getExistingURL, baseURL).Scan(&shortURL)
+		if err != nil {
+			return err
+		}
+		return errors.NewULRDuplicateError(baseURL, shortURL)
+	}
+
 	return err
 }
 
@@ -123,6 +141,10 @@ func (s *DBStorage) GetUserURLs(ctx context.Context, uuid string) ([]entities.UR
 		urls = append(urls, u)
 	}
 
+	if len(urls) == 0 {
+		return nil, errors.NewEmptyStorageError(uuid)
+	}
+
 	return urls, nil
 }
 
@@ -142,26 +164,6 @@ func (s *DBStorage) GetNextID(ctx context.Context) (int, error) {
 	}
 
 	return id, nil
-}
-
-func (s *DBStorage) GetURLIfExist(ctx context.Context, url string) (string, error) {
-	conn, err := s.connect(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	defer conn.Close()
-	var str sql.NullString
-	err = conn.QueryRowContext(ctx, getExistingURL, url).Scan(&str)
-
-	if err != nil && err.Error() != "sql: no rows in result set" {
-		return "", err
-	}
-
-	if str.Valid {
-		return str.String, nil
-	}
-	return "", nil
 }
 
 func (s *DBStorage) GetBaseURL() string {

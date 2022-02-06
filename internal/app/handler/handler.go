@@ -2,9 +2,11 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/xbreathoflife/url-shortener/internal/app/auth"
 	"github.com/xbreathoflife/url-shortener/internal/app/core"
 	"github.com/xbreathoflife/url-shortener/internal/app/entities"
+	er "github.com/xbreathoflife/url-shortener/internal/app/errors"
 	"io"
 	"log"
 	"net/http"
@@ -46,9 +48,15 @@ func (h *Handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 	URLsForUser, err := h.Service.GetUserURLs(ctx, uuid)
 	w.Header().Set("Content-Type", "application/json")
 
-	if err != nil || len(URLsForUser) == 0 {
-		w.WriteHeader(http.StatusNoContent)
-		return
+	if err != nil {
+		var se *er.EmptyStorageError
+		if errors.As(err, &se) {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	js, err := json.Marshal(URLsForUser)
@@ -82,14 +90,25 @@ func(h *Handler) PostURLHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	uuid := ctx.Value(auth.CtxKey).(string)
 	shortenedURL, err := h.Service.AddNewURL(ctx, baseURL, uuid)
+	var statusCode int
+	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		var de *er.ULRDuplicateError
+		if errors.As(err, &de) {
+			shortenedURL = de.ShortURL
+			statusCode = http.StatusConflict
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		statusCode = http.StatusCreated
 	}
 
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(statusCode)
 	_, err = w.Write([]byte(shortenedURL))
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -116,10 +135,19 @@ func(h *Handler) PostJSONURLHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	uuid := ctx.Value(auth.CtxKey).(string)
+	var statusCode int
 	shortURL, err := h.Service.AddNewURL(ctx, baseURL.Name, uuid)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		var de *er.ULRDuplicateError
+		if errors.As(err, &de) {
+			shortURL = de.ShortURL
+			statusCode = http.StatusConflict
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		statusCode = http.StatusCreated
 	}
 
 	shortenedURL := entities.ShortenedURL{Name: shortURL}
@@ -130,7 +158,7 @@ func(h *Handler) PostJSONURLHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(statusCode)
 	_, err = w.Write(js)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
