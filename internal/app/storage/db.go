@@ -108,10 +108,10 @@ func (s *DBStorage) GetUserURLs(ctx context.Context, uuid string) ([]entities.UR
 
 	defer conn.Close()
 	rows, err := conn.QueryContext(ctx, getURLsByUserQuery, uuid)
-
-	if err != nil {
+	if err != nil && rows.Err() != nil {
 		return nil, err
 	}
+
 	defer rows.Close()
 
 	var urls []entities.URL
@@ -154,7 +154,7 @@ func (s *DBStorage) GetURLIfExist(ctx context.Context, url string) (string, erro
 	var str sql.NullString
 	err = conn.QueryRowContext(ctx, getExistingURL, url).Scan(&str)
 
-	if err != nil && err.Error() != "no rows in result set" {
+	if err != nil && err.Error() != "sql: no rows in result set" {
 		return "", err
 	}
 
@@ -170,10 +170,10 @@ func (s *DBStorage) GetBaseURL() string {
 
 func (s *DBStorage) InsertBatch(ctx context.Context, records []entities.Record) error {
 	db, err := s.connect(ctx)
-	defer db.Close()
 	if err != nil {
 		return err
 	}
+	defer db.Close()
 
 	tx, err := db.Begin()
 	if err != nil {
