@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const gzipEncoding = "gzip"
+
 type gzipWriter struct {
 	http.ResponseWriter
 	Writer io.Writer
@@ -18,7 +20,7 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func GzipEncoder(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), gzipEncoding) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -30,14 +32,14 @@ func GzipEncoder(next http.Handler) http.Handler {
 		}
 		defer gz.Close()
 
-		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Content-Encoding", gzipEncoding)
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
 	})
 }
 
 func GzipDecoder(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get(`Content-Encoding`) == `gzip` {
+		if r.Header.Get("Content-Encoding") == gzipEncoding {
 			gz, err := gzip.NewReader(r.Body)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)

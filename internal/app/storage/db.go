@@ -56,9 +56,9 @@ func (s *DBStorage) CheckConnect(_ context.Context) error {
 		fmt.Printf("Unable to connect to database: %v\n", err)
 		return err
 	}
-	defer conn.Close()
 
-	return nil
+	defer conn.Close()
+	return conn.Ping()
 }
 
 func (s *DBStorage) connect(_ context.Context) (*sql.DB, error) {
