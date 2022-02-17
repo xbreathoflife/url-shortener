@@ -196,7 +196,7 @@ func TestURLPostHandler(t *testing.T) {
 				assert.Equal(t, tt.want.url[i], string(urlResult))
 			}
 			if tt.want.statusCode[0] != http.StatusBadRequest {
-				request := httptest.NewRequest(http.MethodGet, "/user/urls", bytes.NewBuffer(nil))
+				request := httptest.NewRequest(http.MethodGet, "/api/user/urls", bytes.NewBuffer(nil))
 				request.AddCookie(&cookie)
 				w := httptest.NewRecorder()
 				h := server.URLHandler()
