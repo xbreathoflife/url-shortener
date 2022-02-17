@@ -47,5 +47,4 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Fatal(http.ListenAndServe(conf.Address, r))
-
 }
