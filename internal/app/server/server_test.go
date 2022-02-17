@@ -316,6 +316,8 @@ func TestURLDeleteHandler(t *testing.T) {
 					uuid := result.Cookies()[0]
 					cookie = http.Cookie{Name: uuid.Name, Value: uuid.Value}
 				}
+				err := result.Body.Close()
+				require.NoError(t, err)
 				assert.Equal(t, tt.want.statusCode[i], result.StatusCode)
 			}
 		})
