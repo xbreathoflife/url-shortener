@@ -36,5 +36,5 @@ type ShortenedURL struct {
 
 type DeleteTask struct {
 	ShortURLID int
-	Uuid       string
+	UUID       string
 }

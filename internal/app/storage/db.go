@@ -229,7 +229,7 @@ func (s *DBStorage) DeleteBatch(ctx context.Context, tasks []entities.DeleteTask
 	}
 
 	for _, task := range tasks {
-		if _, err = stmt.ExecContext(ctx, task.Uuid, task.ShortURLID); err != nil {
+		if _, err = stmt.ExecContext(ctx, task.UUID, task.ShortURLID); err != nil {
 			if err = tx.Rollback(); err != nil {
 				return err
 			}
