@@ -243,7 +243,3 @@ func (s *DBStorage) DeleteBatch(ctx context.Context, tasks []entities.DeleteTask
 
 	return nil
 }
-
-func (s *DBStorage) AddUrlForDeleting(task entities.DeleteTask) {
-	s.deleteBuffer <- task
-}

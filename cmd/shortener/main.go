@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"github.com/xbreathoflife/url-shortener/config"
 	"github.com/xbreathoflife/url-shortener/internal/app/server"
 	"github.com/xbreathoflife/url-shortener/internal/app/storage"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func parseFlags(conf *config.Config) {
@@ -39,5 +44,23 @@ func main() {
 	dbStorage := storage.NewDBStorage(conf.ConnString, conf.BaseURL)
 	urlServer := server.NewURLServer(dbStorage)
 	r := urlServer.URLHandler()
-	log.Fatal(http.ListenAndServe(conf.Address, r))
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		if err := http.ListenAndServe(conf.Address, r); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+	log.Print("Server Started")
+	<-done
+	log.Print("Server Stopped")
+
+	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
+		// extra handling here
+		cancel()
+	}()
+
 }

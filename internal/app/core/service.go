@@ -69,7 +69,7 @@ func (us *URLService) AsyncDelete(_ context.Context, uuid string, ids []string) 
 				fmt.Printf("error: %v\n", err)
 				return
 			}
-			us.DeleteWorker.AddUrlForDeleting(entities.DeleteTask{ShortURLID: newID, Uuid: uuid})
+			us.DeleteWorker.AddURLForDeleting(entities.DeleteTask{ShortURLID: newID, Uuid: uuid})
 		}
 	}()
 }

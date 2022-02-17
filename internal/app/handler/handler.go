@@ -232,9 +232,6 @@ func (h *Handler) DeleteURLs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error during parsing request json", http.StatusBadRequest)
 		return
 	}
-	for _, i := range ids {
-		log.Printf(i)
-	}
 
 	ctx := r.Context()
 	uuid := ctx.Value(auth.CtxKey).(string)

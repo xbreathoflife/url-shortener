@@ -127,7 +127,3 @@ func (storage *MemoryStorage) DeleteBatch(_ context.Context, _ []entities.Delete
 	//todo: implement
 	return nil
 }
-
-func (storage *MemoryStorage) AddUrlForDeleting(_ entities.DeleteTask) {
-	//todo: implement
-}

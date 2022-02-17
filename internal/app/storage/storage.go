@@ -15,5 +15,4 @@ type Storage interface {
 	GetNextID(ctx context.Context) (int, error)
 	GetBaseURL() string
 	DeleteBatch(ctx context.Context, tasks []entities.DeleteTask) error
-	AddUrlForDeleting(task entities.DeleteTask)
 }

@@ -18,13 +18,12 @@ func NewDeleteWorker(ctx context.Context) *DeleteWorker {
 	return &DeleteWorker{deleteBuffer: make(chan entities.DeleteTask, bufferSize), ctx: ctx}
 }
 
-func (dw *DeleteWorker) AddUrlForDeleting(task entities.DeleteTask) {
+func (dw *DeleteWorker) AddURLForDeleting(task entities.DeleteTask) {
 	dw.deleteBuffer <- task
 }
 
 func (dw *DeleteWorker) RunDeleting(storage storage.Storage) {
 	ticker := time.NewTicker(3 * time.Second)
-	log.Println("here")
 	for {
 		select {
 		case <-ticker.C:
@@ -32,13 +31,11 @@ func (dw *DeleteWorker) RunDeleting(storage storage.Storage) {
 			for i := 0; i < bufferSize; i++ {
 				select {
 				case item := <-dw.deleteBuffer:
-					log.Println(item.Uuid, item.ShortURLID, "added")
 					items = append(items, item)
 				default:
 				}
 			}
 			if len(items) > 0 {
-				log.Println("deleting")
 				err := storage.DeleteBatch(dw.ctx, items)
 				if err != nil {
 					log.Println(err)
