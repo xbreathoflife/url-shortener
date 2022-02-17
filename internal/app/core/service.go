@@ -2,13 +2,16 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"github.com/xbreathoflife/url-shortener/internal/app/entities"
 	"github.com/xbreathoflife/url-shortener/internal/app/storage"
+	"github.com/xbreathoflife/url-shortener/internal/app/worker"
 	"strconv"
 )
 
 type URLService struct {
 	Storage   storage.Storage
+	DeleteWorker *worker.DeleteWorker
 }
 
 func (us *URLService) GetURLByID(ctx context.Context, id int) (string, error) {
@@ -56,4 +59,17 @@ func (us *URLService) AddURLsBatch(ctx context.Context, urls []entities.BatchURL
 	}
 
 	return records, nil
+}
+
+func (us *URLService) AsyncDelete(_ context.Context, uuid string, ids []string) {
+	go func() {
+		for _, id := range ids {
+			newID, err := strconv.Atoi(id)
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				return
+			}
+			us.DeleteWorker.AddUrlForDeleting(entities.DeleteTask{ShortURLID: newID, Uuid: uuid})
+		}
+	}()
 }

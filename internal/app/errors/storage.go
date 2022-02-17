@@ -33,3 +33,17 @@ func NewEmptyStorageError(user string) *EmptyStorageError {
 		User: user,
 	}
 }
+
+type ULRNotFoundError struct{
+	ID int
+}
+
+func (e *ULRNotFoundError) Error() string {
+	return fmt.Sprintf("URL with id %d not found", e.ID)
+}
+
+func NewULRNotFoundError(id int) *ULRNotFoundError {
+	return &ULRNotFoundError{
+		ID: id,
+	}
+}

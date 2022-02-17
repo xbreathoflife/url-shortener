@@ -122,3 +122,12 @@ func (storage *MemoryStorage) GetURLIfExist(_ context.Context, url string) (stri
 func (storage *MemoryStorage) GetBaseURL() string {
 	return storage.BaseURL
 }
+
+func (storage *MemoryStorage) DeleteBatch(_ context.Context, _ []entities.DeleteTask) error {
+	//todo: implement
+	return nil
+}
+
+func (storage *MemoryStorage) AddUrlForDeleting(_ entities.DeleteTask) {
+	//todo: implement
+}
