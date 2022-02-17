@@ -17,7 +17,6 @@ import (
 type urlServer struct {
 	storage      storage.Storage
 	handlers     *handler.Handler
-	//deleteWorker *worker.DeleteWorker
 }
 
 func NewURLServer(storage storage.Storage) *urlServer {

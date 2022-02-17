@@ -7,9 +7,6 @@ import (
 	"github.com/xbreathoflife/url-shortener/internal/app/storage"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 func parseFlags(conf *config.Config) {
@@ -42,9 +39,6 @@ func main() {
 	dbStorage := storage.NewDBStorage(conf.ConnString, conf.BaseURL)
 	urlServer := server.NewURLServer(dbStorage)
 	r := urlServer.URLHandler()
-
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Fatal(http.ListenAndServe(conf.Address, r))
 }
