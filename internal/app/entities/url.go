@@ -4,6 +4,7 @@ type URL struct {
 	BaseURL      string `json:"original_url"`
 	ShortenedURL string `json:"short_url"`
 	UserID       string `json:"-"`
+	IsDeleted    bool   `json:"-"`
 }
 
 type StoredURL struct {
@@ -31,4 +32,9 @@ type BatchURLRequest struct {
 
 type ShortenedURL struct {
 	Name string `json:"result"`
+}
+
+type DeleteTask struct {
+	ShortURLID int
+	UUID       string
 }

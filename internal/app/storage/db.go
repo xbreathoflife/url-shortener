@@ -16,26 +16,29 @@ const (
 		"    id           SERIAL PRIMARY KEY," +
 		"    original_url TEXT NOT NULL UNIQUE," +
 		"    short_url    TEXT NOT NULL," +
-		"    uuid         TEXT NOT NULL" +
+		"    uuid         TEXT NOT NULL," +
+		"    is_deleted   BOOL NOT NULL DEFAULT FALSE" +
 		")"
 
 	countURLQuery = "SELECT COUNT(*) as count FROM url"
 
 	insertURLQuery = "INSERT INTO url(id, original_url, short_url, uuid) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING"
 
-	getURLByIDQuery = "SELECT original_url FROM url WHERE id = $1"
+	getURLByIDQuery = "SELECT original_url, is_deleted FROM url WHERE id = $1"
 
-	getURLsByUserQuery = "SELECT original_url, short_url, uuid FROM url WHERE uuid = $1"
+	getURLsByUserQuery = "SELECT original_url, short_url, uuid, is_deleted FROM url WHERE uuid = $1"
 
 	getExistingURL = "SELECT short_url FROM url WHERE original_url = $1"
 )
 type DBStorage struct {
-	ConnString string
-	BaseURL    string
+	ConnString   string
+	BaseURL      string
+	deleteBuffer chan entities.DeleteTask
 }
 
 func NewDBStorage(connString string, baseURL string) *DBStorage {
-	storage := &DBStorage{ConnString: connString, BaseURL: baseURL}
+	deleteBuffer := make(chan entities.DeleteTask, 1)
+	storage := &DBStorage{ConnString: connString, BaseURL: baseURL, deleteBuffer: deleteBuffer}
 	return storage
 }
 
@@ -108,14 +111,17 @@ func (s *DBStorage) GetURLByID(ctx context.Context, id int) (string, error) {
 	}
 
 	defer conn.Close()
-	var u string
+	var u entities.URL
 	row := conn.QueryRowContext(ctx, getURLByIDQuery, id)
-	err = row.Scan(&u)
+	err = row.Scan(&u.BaseURL, &u.IsDeleted)
+	if u.BaseURL != "" && u.IsDeleted {
+		return "", errors.NewULRNotFoundError(id)
+	}
 	if err != nil {
 		fmt.Printf("Unable to get row count: %v\n", err)
 		return "", err
 	}
-	return u, nil
+	return u.BaseURL, nil
 }
 
 func (s *DBStorage) GetUserURLs(ctx context.Context, uuid string) ([]entities.URL, error) {
@@ -135,10 +141,12 @@ func (s *DBStorage) GetUserURLs(ctx context.Context, uuid string) ([]entities.UR
 	var urls []entities.URL
 	for rows.Next() {
 		var u entities.URL
-		if err := rows.Scan(&u.BaseURL, &u.ShortenedURL, &u.UserID); err != nil {
+		if err := rows.Scan(&u.BaseURL, &u.ShortenedURL, &u.UserID, &u.IsDeleted); err != nil {
 			return nil, err
 		}
-		urls = append(urls, u)
+		if !u.IsDeleted {
+			urls = append(urls, u)
+		}
 	}
 
 	if len(urls) == 0 {
@@ -189,6 +197,39 @@ func (s *DBStorage) InsertBatch(ctx context.Context, records []entities.Record) 
 
 	for _, r := range records {
 		if _, err = stmt.Exec(r.ID, r.BaseURL, r.ShortenedURL, r.UserID); err != nil {
+			if err = tx.Rollback(); err != nil {
+				return err
+			}
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *DBStorage) DeleteBatch(ctx context.Context, tasks []entities.DeleteTask) error {
+	db, err := s.connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Prepare("UPDATE url SET is_deleted = true WHERE uuid = $1 AND id = $2")
+	if err != nil {
+		return err
+	}
+
+	for _, task := range tasks {
+		if _, err = stmt.ExecContext(ctx, task.UUID, task.ShortURLID); err != nil {
 			if err = tx.Rollback(); err != nil {
 				return err
 			}

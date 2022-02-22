@@ -33,6 +33,11 @@ func (h *Handler) GetURLHandler(w http.ResponseWriter, r *http.Request, urlID st
 	ctx := r.Context()
 	url, err := h.Service.GetURLByID(ctx, id)
 	if err != nil {
+		var nfe *er.ULRNotFoundError
+		if errors.As(err, &nfe) {
+			w.WriteHeader(http.StatusGone)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -53,10 +58,9 @@ func (h *Handler) GetUserURLs(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &se) {
 			w.WriteHeader(http.StatusNoContent)
 			return
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
 		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	js, err := json.Marshal(URLsForUser)
@@ -215,4 +219,23 @@ func (h *Handler) GetPing(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Couldn't connect to DB", http.StatusInternalServerError)
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) DeleteURLs(w http.ResponseWriter, r *http.Request) {
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var ids []string
+	if err := json.Unmarshal(b, &ids); err != nil {
+		http.Error(w, "Error during parsing request json", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	uuid := ctx.Value(auth.CtxKey).(string)
+
+	h.Service.AsyncDelete(ctx, uuid, ids)
+	w.WriteHeader(http.StatusAccepted)
 }

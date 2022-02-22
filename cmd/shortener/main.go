@@ -39,5 +39,6 @@ func main() {
 	dbStorage := storage.NewDBStorage(conf.ConnString, conf.BaseURL)
 	urlServer := server.NewURLServer(dbStorage)
 	r := urlServer.URLHandler()
+
 	log.Fatal(http.ListenAndServe(conf.Address, r))
 }

@@ -9,13 +9,14 @@ import (
 	"github.com/xbreathoflife/url-shortener/internal/app/core"
 	"github.com/xbreathoflife/url-shortener/internal/app/handler"
 	"github.com/xbreathoflife/url-shortener/internal/app/storage"
+	"github.com/xbreathoflife/url-shortener/internal/app/worker"
 	"log"
 	"net/http"
 )
 
 type urlServer struct {
-	storage   storage.Storage
-	handlers  *handler.Handler
+	storage      storage.Storage
+	handlers     *handler.Handler
 }
 
 func NewURLServer(storage storage.Storage) *urlServer {
@@ -25,8 +26,10 @@ func NewURLServer(storage storage.Storage) *urlServer {
 		log.Printf("error while initializing storage: %v", err)
 		return nil
 	}
+	deleteWorker := worker.NewDeleteWorker(ctx)
+	handlers := handler.Handler{Service: &core.URLService{Storage: storage, DeleteWorker: deleteWorker}}
 
-	handlers := handler.Handler{Service: &core.URLService{Storage: storage}}
+	go deleteWorker.RunDeleting(storage)
 	return &urlServer{storage: storage, handlers: &handlers}
 }
 
@@ -58,12 +61,16 @@ func (us *urlServer) URLHandler() *chi.Mux {
 		us.handlers.PostJSONURLBatchHandler(rw, r)
 	})
 
-	r.Get("/user/urls", func(rw http.ResponseWriter, r *http.Request) {
+	r.Get("/api/user/urls", func(rw http.ResponseWriter, r *http.Request) {
 		us.handlers.GetUserURLs(rw, r)
 	})
 
 	r.Get("/ping", func(rw http.ResponseWriter, r *http.Request) {
 		us.handlers.GetPing(rw, r)
+	})
+
+	r.Delete("/api/user/urls",  func(rw http.ResponseWriter, r *http.Request) {
+		us.handlers.DeleteURLs(rw, r)
 	})
 
 	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {

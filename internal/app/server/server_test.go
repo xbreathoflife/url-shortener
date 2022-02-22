@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func TestURLPostHandler(t *testing.T) {
@@ -195,7 +196,7 @@ func TestURLPostHandler(t *testing.T) {
 				assert.Equal(t, tt.want.url[i], string(urlResult))
 			}
 			if tt.want.statusCode[0] != http.StatusBadRequest {
-				request := httptest.NewRequest(http.MethodGet, "/user/urls", bytes.NewBuffer(nil))
+				request := httptest.NewRequest(http.MethodGet, "/api/user/urls", bytes.NewBuffer(nil))
 				request.AddCookie(&cookie)
 				w := httptest.NewRecorder()
 				h := server.URLHandler()
@@ -268,6 +269,56 @@ func TestURLGetHandler(t *testing.T) {
 
 				err = result.Body.Close()
 				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestURLDeleteHandler(t *testing.T) {
+	type want struct {
+		statusCode []int
+	}
+	tests := []struct {
+		name    string
+		request []string
+		body    []string
+		method  []string
+		want    want
+	}{
+		{
+			name: "test delete",
+			body: []string{"https://yandex.ru/", "", "[\"0\"]", ""},
+			want: want{
+				statusCode: []int{201, 307, 202, 410},
+			},
+			method: []string{http.MethodPost, http.MethodGet, http.MethodDelete, http.MethodGet},
+			request: []string{"/", "/0", "/api/user/urls", "/0"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := storage.NewStorage("", "http://localhost:8080")
+			server := NewURLServer(store)
+			cookie := http.Cookie{}
+			for i, element := range tt.body {
+				if i == 3 {
+					time.Sleep(4 * time.Second)
+				}
+
+				body := []byte(element)
+				request := httptest.NewRequest(tt.method[i], tt.request[i], bytes.NewBuffer(body))
+				w := httptest.NewRecorder()
+				request.AddCookie(&cookie)
+				h := server.URLHandler()
+				h.ServeHTTP(w, request)
+				result := w.Result()
+				if len(result.Cookies()) > 0 {
+					uuid := result.Cookies()[0]
+					cookie = http.Cookie{Name: uuid.Name, Value: uuid.Value}
+				}
+				err := result.Body.Close()
+				require.NoError(t, err)
+				assert.Equal(t, tt.want.statusCode[i], result.StatusCode)
 			}
 		})
 	}

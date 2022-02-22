@@ -85,6 +85,9 @@ func (storage *MemoryStorage) InsertBatch(ctx context.Context, records []entitie
 func (storage *MemoryStorage) GetURLByID(_ context.Context, id int) (string, error) {
 	url, ok := storage.urls[id]
 	if ok {
+		if url.IsDeleted {
+			return "", errors.NewULRNotFoundError(id)
+		}
 		return url.BaseURL, nil
 	} else {
 		return "", fmt.Errorf("URL with id=%d not found", id)
@@ -121,4 +124,15 @@ func (storage *MemoryStorage) GetURLIfExist(_ context.Context, url string) (stri
 
 func (storage *MemoryStorage) GetBaseURL() string {
 	return storage.BaseURL
+}
+
+func (storage *MemoryStorage) DeleteBatch(ctx context.Context, tasks []entities.DeleteTask) error {
+	for _, task := range tasks {
+		old, ok := storage.urls[task.ShortURLID]
+		if ok {
+			old.IsDeleted = true
+			storage.urls[task.ShortURLID] = old
+		}
+	}
+	return nil
 }
